@@ -25,12 +25,23 @@ def is_nil(ctx):
     if is_token(ctx.child()) and ctx.result == 'nil':
         return ctx.matched([])
 
-def is_token(ctx):
+def is_number(ctx):
+    token = ""
+    while ctx.is_oneof('1234567890'):
+        token += ctx.result
+    if len(token) > 0:
+        return ctx.matched(int(token))
+
+def is_symbol(ctx):
     token = ""
     while ctx.is_oneof('abcdefghijklmnopqrstuvexyz-_+*1234567890!?&='):
         token += ctx.result
     if len(token) > 0:
-        return ctx.matched(int(token) if token.isdigit() else token)
+        return ctx.matched(token)
+
+def is_token(ctx):
+    if is_number(ctx.child()) or is_symbol(ctx.child()):
+        return ctx.matched()
 
 def is_element(ctx):
     if is_nil(ctx.child()) \

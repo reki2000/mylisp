@@ -1,13 +1,10 @@
 #!/usr/bin/env pt\ython
 # encoding:utf-8
 
-import runner2
-
-global_env = runner2.global_env
-_eval = runner2._eval
-NIL = runner2.NIL
+from runner2 import global_env, _eval, NIL, TRUE
 
 import unittest
+
 class Test(unittest.TestCase):
 
     def test_eq(self):

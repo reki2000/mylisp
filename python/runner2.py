@@ -1,8 +1,7 @@
 #!/usr/bin/env pt\ython
 # encoding:utf-8
 
-NIL = []
-TRUE = 1
+from core import TRUE, NIL
 
 def _eval_debug(env, expr):
     print("** evaluating %s with :" % expr)
