@@ -1,7 +1,9 @@
 #!/usr/bin/env pt\ython
 # encoding:utf-8
 
-from core import TRUE, NIL
+from core import TRUE, NIL, symbol, Symbol, _s
+
+DEFINE, COND, LET, LAMBDA, FN, QUOTE, SETQ = _s('define'), _s('cond'), _s('let'), _s('lambda'), _s('fn'), _s('quote'), _s('setq!')
 
 def _eval_debug(env, expr):
     print("** evaluating %s with :" % expr)
@@ -14,30 +16,31 @@ def _eval_debug(env, expr):
 
 def _eval_core(env, expr):
     while True:
-        if isinstance(expr, int) or expr == []:
+        if isinstance(expr, (int, str)) or expr == []:
             return expr
-        elif isinstance(expr, str):
+        elif isinstance(expr, Symbol):
             for body in [v for k,v in env if k == expr]:
                 return body
+            return expr
         elif isinstance(expr, list):
             f = expr[0]
-            if f == 'quote':
+            if f == QUOTE:
                 return expr[1]
-            elif f == 'cond':
+            elif f == COND:
                 expr = cond(env, *expr[1:])
                 continue
-            elif f == 'lambda' or f == 'fn':
+            elif f == LAMBDA or f == FN:
                 var, body, *_ = expr[1:]
                 return lambda env, *args: _eval([(k,v) for k,v in zip(var, args)] + env, body)
-            elif f == 'define':
+            elif f == DEFINE:
                 name, body, *_ = expr[1:]
                 return env.insert(0, (name, _eval(env, body)))
-            elif f == 'setq!':
+            elif f == SETQ:
                 for i, e in enumerate(env):
                     if e[0] == expr[1]:
                         env[i] = (expr[1], expr[2])
                         return NIL
-            elif f == 'let':
+            elif f == LET:
                 (var, val), body, *_ = expr[1:]
                 env, expr = ([(var, _eval(env, val))] + env), body
                 continue
@@ -56,13 +59,13 @@ def cond(env, *v):
         else cond(env, *v[1:])
 
 global_env = [
-    ('car', lambda env, x: x[0]),
-    ('cdr', lambda env, x: x[1:]),
-    ('cons', lambda env, x,y: [x] + y),
-    ('eval', lambda env, x: _eval(env, x)),
-    ('eq?', lambda env, x,y: TRUE if x == y else NIL),
-    ('+', lambda env, x,y: x + y),
-    ('-', lambda env, x,y: x - y),
-    ('*', lambda env, x,y: x * y),
-    ('echo', lambda env, x: print(x))
+    (_s('car'), lambda env, x: x[0]),
+    (_s('cdr'), lambda env, x: x[1:]),
+    (_s('cons'), lambda env, x,y: [x] + y),
+    (_s('eval'), lambda env, x: _eval(env, x)),
+    (_s('eq?'), lambda env, x,y: TRUE if x == y else NIL),
+    (_s('+'), lambda env, x,y: x + y),
+    (_s('-'), lambda env, x,y: x - y),
+    (_s('*'), lambda env, x,y: x * y),
+    (_s('echo'), lambda env, x: print(x))
 ]
