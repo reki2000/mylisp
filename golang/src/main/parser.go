@@ -39,36 +39,42 @@ func (ctx *context) skip() {
 	}
 }
 
-func (ctx *context) oneOf(chars string) bool {
+func (ctx *context) match(val expr) bool {
+	ctx.result = val
+	return true
+}
+
+func (ctx *context) fail(pos int) bool {
+	ctx.pos = pos
+	return false
+}
+
+func (ctx *context) isOneOf(chars string) bool {
 	for _, char := range chars {
 		if ctx.is(char) {
-			ctx.result = char
-			return true
+			return ctx.match(char)
 		}
 	}
 	return false
 }
 
-func (ctx *context) token(chars string) bool {
+func (ctx *context) isToken(chars string) bool {
 	pos := ctx.pos
 	token := []rune{}
-	for !ctx.eol() && ctx.oneOf(chars) {
+	for !ctx.eol() && ctx.isOneOf(chars) {
 		token = append(token, ctx.result.(rune))
 	}
 	if len(token) > 0 {
-		ctx.result = string(token)
-		return true
+		return ctx.match(string(token))
 	}
-	ctx.pos = pos
-	return false
+	return ctx.fail(pos)
 }
 
 func (ctx *context) isNumber() bool {
-	if ctx.token("0123456789") {
+	if ctx.isToken("0123456789") {
 		i, err := strconv.ParseInt(ctx.result.(string), 10, 32)
 		if err == nil {
-			ctx.result = int(i)
-			return true
+			return ctx.match(int(i))
 		}
 	}
 	return false
@@ -76,7 +82,7 @@ func (ctx *context) isNumber() bool {
 
 func (ctx *context) isString() bool {
 	const stringChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-!_?+*&#$"
-	if ctx.token(stringChars) {
+	if ctx.isToken(stringChars) {
 		return true
 	}
 	return false
@@ -87,11 +93,9 @@ func (ctx *context) isNil() bool {
 	if ctx.is('n') &&
 		ctx.is('i') &&
 		ctx.is('l') {
-		ctx.result = NIL
-		return true
+		return ctx.match(NIL)
 	}
-	ctx.pos = pos
-	return false
+	return ctx.fail(pos)
 }
 
 func (ctx *context) isElement() bool {
@@ -114,11 +118,9 @@ func (ctx *context) isElements() bool {
 		result = append(result, ctx.result)
 	}
 	if len(result) > 0 {
-		ctx.result = result
-		return true
+		return ctx.match(result)
 	}
-	ctx.pos = pos
-	return false
+	return ctx.fail(pos)
 }
 
 func (ctx *context) isList() bool {
@@ -127,20 +129,20 @@ func (ctx *context) isList() bool {
 		if ctx.isElements() {
 			result := ctx.result
 			if ctx.is(')') {
-				ctx.result = result
-				return true
+				return ctx.match(result)
 			}
 		}
+		if ctx.is(')') {
+			return ctx.match(NIL)
+		}
 	}
-	ctx.pos = pos
-	return false
+	return ctx.fail(pos)
 }
 
 func (ctx *context) isQList() bool {
-	if ctx.is('\'') &&
-		ctx.isList() {
-		ctx.result = []expr{"quote", ctx.result}
-		return true
+	pos := ctx.pos
+	if ctx.is('\'') && ctx.isList() {
+		return ctx.match([]expr{"quote", ctx.result})
 	}
-	return false
+	return ctx.fail(pos)
 }

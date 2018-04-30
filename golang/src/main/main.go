@@ -3,44 +3,74 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 )
 
 // Predefined constants
 var (
-	NIL = []int{}
+	NIL   = []expr{}
+	TRUE  = 1
+	FALSE = 0
 )
-
-type env map[expr]string
 
 // expr should be one of string, int, NIL, TRUE, FALSE and array of expr
 type expr interface{}
 
-var globalEnv env
+// Var contains defined variables
+type Var struct {
+	name string
+	body expr
+}
+
+// GlobalEnv have global variables
+var GlobalEnv = []Var{}
 
 // repl - interactive interpreter for console
 func repl(line string) expr {
 	if len(line) > 0 && line[0] != ';' {
-		return eval(globalEnv, parse(line))
+		return eval(GlobalEnv, parse(line))
 	}
 	return nil
 }
 
 func main() {
-	// file, err := os.Open("rc.lisp")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// defer file.Close()
+	GlobalEnv = append(GlobalEnv, Var{"car", func(env []Var, a ...expr) expr {
+		return a[0].([]expr)[0]
+	}})
+	GlobalEnv = append(GlobalEnv, Var{"cdr", func(env []Var, a ...expr) expr {
+		return a[0].([]expr)[1:]
+	}})
+	GlobalEnv = append(GlobalEnv, Var{"eq?", func(env []Var, a ...expr) expr {
+		if a[0] == a[1] {
+			return TRUE
+		}
+		return FALSE
+	}})
+	GlobalEnv = append(GlobalEnv, Var{"+", func(env []Var, a ...expr) expr {
+		return a[0].(int) + a[1].(int)
+	}})
+	GlobalEnv = append(GlobalEnv, Var{"-", func(env []Var, a ...expr) expr {
+		return a[0].(int) - a[1].(int)
+	}})
+	GlobalEnv = append(GlobalEnv, Var{"*", func(env []Var, a ...expr) expr {
+		return a[0].(int) * a[1].(int)
+	}})
 
-	// scanner := bufio.NewScanner(file)
-	// for scanner.Scan() {
-	// 	fmt.Println(repl(scanner.Text()))
-	// }
+	file, err := os.Open("rc.lisp")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
 
-	// if err := scanner.Err(); err != nil {
-	// 	log.Fatal("scanner error")
-	// }
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		fmt.Println(repl(scanner.Text()))
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Fatal("scanner error")
+	}
 
 	fmt.Print("lisp>")
 	console := bufio.NewScanner(os.Stdin)

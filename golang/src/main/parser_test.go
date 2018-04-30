@@ -21,6 +21,14 @@ func TestParseList(t *testing.T) {
 	}
 }
 
+func TestParseNIL(t *testing.T) {
+	actual := parse("()")
+	expected := []expr{}
+	if !reflect.DeepEqual(actual, expected) {
+		t.Errorf("got %v(%v) but expected %v", actual, reflect.TypeOf(actual), expected)
+	}
+}
+
 func TestParseStringList(t *testing.T) {
 	actual := parse("(a (b c))")
 	expected := []expr{"a", []expr{"b", "c"}}
